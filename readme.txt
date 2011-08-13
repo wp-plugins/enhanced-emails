@@ -9,7 +9,7 @@ The enhanced emails plugin allows users to send html-enriched emails and use ema
 
 == Description ==
 
-This plugin is in very early development stage. It is meant for testing purposes only and it is not recommended to use it on production sites.
+This plugin is in early development stage. Expect bugs.
 
 == Installation ==
 
@@ -22,7 +22,7 @@ This plugin is in very early development stage. It is meant for testing purposes
 
 This is highly unlikely to happen. The plugin enhances the way WordPress handles e-mail notifications, but it does it in a unobtrusive way. Basically, it provides a wrapper for wp_mail, which can be used for e-mail notifications. If you did override any pluggable email notification functions, make sure to use eemails_wp_mail instead of wp_mail in order to make use of the plugin functionality. 
 
-= How can I create my own e-mail theme? -
+= How can I create my own e-mail theme? =
 
 It's easy - just put your email.php theme file inside your current WP theme directory (if you put it inside wp-content it should work as well, but it's bad practice). 
 
