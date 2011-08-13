@@ -2,8 +2,8 @@
 /*
 Plugin Name: Enhanced Emails
 Plugin URI: http://wojtekszkutnik.com
-Description: The enhanced emails plugin allows users to send html-enriched emails and use email themes.
-Version: 0.1
+Description: The Enhanced Emails plugin adds e-mail themes, HTML versions for custom and default e-mails and easier use of enriched e-mails out of the box.
+Version: 0.2
 Author: Wojtek Szkutnik
 Author URI: http://wojtekszkutnik.com
 License: GPL2
@@ -58,8 +58,7 @@ function eemails_setting_use_html_admin() {
 	$value = get_option( 'eemails_use_html' );
 	// echo the field
 	?>
- <input id='eemails_use_html' name='eemails_use_html'
- type='checkbox' value="1" <?php checked('1', $value); ?>' /> Use HTML emails
+ <input id='eemails_use_html' name='eemails_use_html' type='checkbox' value="1" <?php checked('1', $value); ?> /> Use HTML emails
 	<?php
 }
 
@@ -86,14 +85,13 @@ function eemails_save_setting_use_html( $user_id ) {
 function eemails_get_template( $template_name ) {
 	
 	// Try the theme template dirs
-	$template_file = '';#eemails_get_template_from_dir( $template_name );
-	
+	$template_file = eemails_get_template_from_dir( $template_name );
 	// Then the wp content dir
-	if ( 0 && ! $template_file )
+	if ( '' == $template_file )
 		$template_file = eemails_get_template_from_dir( $template_name, WP_CONTENT_DIR );
 		
 	// Then the default plugin templates folder
-	if ( ! $template_file )
+	if ( '' == $template_file )
 		$template_file = eemails_get_template_from_dir( $template_name, EEMAILS_TEMPLATES_PATH );
 		
 	return $template_file;
@@ -151,10 +149,8 @@ function eemails_charset( $charset = '' ) {
 }
 
 
-function eemails_wp_mail( $to, $subject, $message, $args = array() ) {
+function eemails_wp_mail( $to, $subject, $message, $headers = '', $attachments = array(), $args = array() ) {
 	$defaults = array (
-		'headers' => '',
-		'attachments' => array(),
  		'template' => 'email',
  		'template_args' => array(),
  		'content_title' => '',
@@ -171,14 +167,12 @@ function eemails_wp_mail( $to, $subject, $message, $args = array() ) {
 	extract( $template_args, EXTR_SKIP );
 	
 	$template = eemails_get_template($template);
-	
-	ob_start();
-	@include( $template );
+	$html_email = '';
+	include( 'templates/layout.php' );
 	$message = array( 
 					 'text/plain' => $message,
-					 'text/html' =>ob_get_contents()
+					 'text/html' => $html_email
 					);
-	ob_end_clean();
 	
 	return wp_mail( $to, $subject, $message );
 }

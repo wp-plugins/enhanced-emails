@@ -423,10 +423,8 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	$notify_message = apply_filters('comment_notification_text', $notify_message, $comment_id);
 	$subject = apply_filters('comment_notification_subject', $subject, $comment_id);
 	$message_headers = apply_filters('comment_notification_headers', $message_headers, $comment_id);
-	$eemails_args['headers'] = $message_headers;
 	$eemails_args['template'] = 'email-comment-notify';
-	@eemails_wp_mail( $author->user_email, $subject, $notify_message, $eemails_args );
-
+	@eemails_wp_mail( $author->user_email, $subject, $notify_message, $message_headers, array(), $eemails_args );
 	return true;
 }
 endif;
@@ -529,10 +527,9 @@ function wp_notify_moderator($comment_id) {
 	$subject = apply_filters('comment_moderation_subject', $subject, $comment_id);
 	$message_headers = apply_filters('comment_moderation_headers', $message_headers);
 	
-	$eemails_args['headers'] = $message_headers;
 	$eemails_args['template'] = 'email-comment-notify';
 	foreach ( $email_to as $email )
-		@eemails_wp_mail($email, $subject, $notify_message, $eemails_args);
+		@eemails_wp_mail($email, $subject, $notify_message, $message_headers, array(), $eemails_args);
 
 	return true;
 }
@@ -561,7 +558,7 @@ function wp_password_change_notification(&$user) {
 											  array('link'=>admin_url("user-edit.php?user_id=".$user->ID),'color'=>'d2b12e','text'=>__('Edit user')),
 											  array('link'=>admin_url("users.php"),'color'=>'3ca757','text'=>__('See all users'))
 											  );
-		eemails_wp_mail(get_option('admin_email'), sprintf(__('[%s] Password Lost/Changed'), $blogname), $message, $eemail_args);
+		eemails_wp_mail(get_option('admin_email'), sprintf(__('[%s] Password Lost/Changed'), $blogname), $message, '', array(), $eemail_args);
 	}
 }
 endif;
@@ -595,7 +592,7 @@ function wp_new_user_notification($user_id, $plaintext_pass = '') {
 										  array('link'=>admin_url("user-edit.php?user_id=".$user->ID),'color'=>'d2b12e','text'=>__('Edit user')),
 										  array('link'=>admin_url("users.php"),'color'=>'3ca757','text'=>__('See all users'))
 										);
-	@eemails_wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message, $eemail_args);
+	@eemails_wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message, '', array(), $eemail_args);
 
 	if ( empty($plaintext_pass) )
 		return;
@@ -607,7 +604,7 @@ function wp_new_user_notification($user_id, $plaintext_pass = '') {
 	$message .= sprintf(__('Password: %s'), $plaintext_pass) . "\r\n";
 	$message .= wp_login_url() . "\r\n";
 
-	eemails_wp_mail($user_email, sprintf(__('[%s] Your username and password'), $blogname), $message, $eemail_args);
+	eemails_wp_mail($user_email, sprintf(__('[%s] Your username and password'), $blogname), $message, '', array(), $eemail_args);
 
 }
 endif;
