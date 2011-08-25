@@ -4,7 +4,7 @@
             	<tr>
                 	<td style="width:75px;" width="75" rowspan="3">
                     <div style="width:60px;height:60px;background-color: #ffffff; border: 1px solid #ececec; -webkit-border-radius: 5px; -moz-border-radius: 5px; border-radius: 5px;">
-                 		<a style="margin:5px 0 0 5px;display:block;">' . eemails_get_gravatar($comment->comment_author_email) . '</a>
+                 		<a style="margin:5px 0 0 5px;display:block;">' . get_avatar( $comment->comment_author_email, 50 ) . '</a>
                     </div></td>
                     <td height="12" style="height:12px;padding-top:2px;">Author: <strong>' . $comment->comment_author . '</strong></td>
                 </tr>

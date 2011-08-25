@@ -3,7 +3,7 @@
 Plugin Name: Enhanced Emails
 Plugin URI: http://wojtekszkutnik.com
 Description: The Enhanced Emails plugin adds e-mail themes, HTML versions for custom and default e-mails and easier use of enriched e-mails out of the box.
-Version: 0.2
+Version: 0.2.1
 Author: Wojtek Szkutnik
 Author URI: http://wojtekszkutnik.com
 License: GPL2
@@ -12,7 +12,7 @@ License: GPL2
 /*  Copyright 2011  Wojtek Szkutnik  (email : me@wojtekszkutnik.com)
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as 
+    it under the terms of the GNU General Public License, version 2, as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -27,11 +27,6 @@ License: GPL2
 
 include('pluggable.php');
 
-define( 'EEMAILS_PATH', dirname( __FILE__ ) );
-define( 'EEMAILS_FOLDER_NAME', '/templates/' );
-define( 'EEMAILS_TEMPLATES_PATH', EEMAILS_PATH . EEMAILS_FOLDER_NAME );
-define( 'EEMAILS_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
-define( 'EEMAILS_URL', plugins_url( EEMAILS_FOLDER ) );
 define( 'EEMAILS_DESCENDING_HIERARCHY', true ); // Descending hierarchy means that for emails-function-name emails-function-name.php, emails-function.php, emails.php will be tried.
 												// Otherwise, only the first and last option will be tried (emails-function-name.php and after that, emails.php)
 
@@ -78,62 +73,47 @@ function eemails_save_setting_use_html( $user_id ) {
     update_usermeta( $user_id, 'eemails_html', $eemails_html );
 }
 
-/*
-	Template hierarchy
-*/
+function eemails_get_template( $slug, $event = null , $name = null ) {
+        do_action( "get_email_template_{$slug}", $slug, $event, $name );
+        $directories = apply_filters( 'email-template-directories', array(
+                '', // Blank is the template directories, which we want to check first
+                dirname( __FILE__ ) . '/templates/', // The templates included with the plugin
+        ) );
 
-function eemails_get_template( $template_name ) {
-	
-	// Try the theme template dirs
-	$template_file = eemails_get_template_from_dir( $template_name );
-	// Then the wp content dir
-	if ( '' == $template_file )
-		$template_file = eemails_get_template_from_dir( $template_name, WP_CONTENT_DIR );
-		
-	// Then the default plugin templates folder
-	if ( '' == $template_file )
-		$template_file = eemails_get_template_from_dir( $template_name, EEMAILS_TEMPLATES_PATH );
-		
-	return $template_file;
+        $templates = array();
+        foreach ( $directories as $dir ) {
+                $dir_slug = empty( $dir )? $slug : path_join( $dir, $slug );
+
+                if ( isset( $event ) && isset( $name ) )
+                        $templates[] = "{$dir_slug}-{$event}-{$name}.php";
+
+                if ( isset( $event ) )
+                        $templates[] = "{$dir_slug}-{$event}.php";
+
+                $templates[] = "{$dir_slug}.php";
+        }
+
+        return locate_email_template( $templates );
 }
 
-function eemails_get_template_from_dir( $template_name, $dir = false ) {
-	
-	// Split the template name into module names
-	$name_parts = explode( '-', $template_name );
-	$name_parts_index  = count( $name_parts )-1;
-	$template_match = '';
-	
-	// Look for the best match
-	while ( $name_parts_index >= 0 ) {
-		
-		$template_file_name =  implode( '-', $name_parts ) . '.php';
-		$template_name_temp = trailingslashit( $dir ) . $template_file_name;
+function locate_email_template( $template_names ) {
+        $located = '';
+        foreach ( (array) $template_names as $template_name ) {
+                if ( !$template_name )
+                        continue;
+                if ( file_exists( get_stylesheet_directory() . '/' . $template_name ) ) {
+                        $located = get_stylesheet_directory() . '/' . $template_name;
+                        break;
+                } else if ( file_exists( get_template_directory() . '/' . $template_name ) ) {
+                        $located = get_template_directory() . '/' . $template_name;
+                        break;
+                } else if ( file_exists( $template_name ) ) {
+                        $located = $template_name;
+                        break;
+                }
+        }
 
-		// If the directory name is not set, search via locate_template
-		if ( false === $dir ) {
-			$template_match = locate_template( $template_file_name );
-			if ( $template_match )
-				break;
-		}
-		
-		// If the template file exists - it is the best match
-		if( file_exists( $template_name_temp ) ) {
-			$template_match = $template_name_temp;
-			break;
-		}
-		
-		// If the template does not exist, search for a more generic template
-		unset( $name_parts[$name_parts_index] );
-		$name_parts_index--;
-		 
-		if ( ( ! EEMAILS_DESCENDING_HIERARCHY ) && ( $name_parts_index > 0 ) ) {
-			$name_parts = Array($name_parts[0]);
-			$name_parts_index = 0;
-		}
-	}
-	
-	return $template_match;
+        return $located;
 }
 
 /*
@@ -142,9 +122,9 @@ function eemails_get_template_from_dir( $template_name, $dir = false ) {
 
 function eemails_charset( $charset = '' ) {
 	// If the charset is not set (most of the times) get the global blog setting
-	if ( '' == $charset ) 
+	if ( '' == $charset )
 		$charset = get_option('blog_charset');
-		
+
 	return "Content-Type: text/html; charset=\"{$charset}\"\n";
 }
 
@@ -159,21 +139,21 @@ function eemails_wp_mail( $to, $subject, $message, $headers = '', $attachments =
  		'include_footer' => true,
 	);
 	$args = wp_parse_args( $args, $defaults );
-	
+
 	if ( ! $content_title )
 		$content_title = $subject;
-		
+
 	extract( $args, EXTR_SKIP );
 	extract( $template_args, EXTR_SKIP );
-	
+
 	$template = eemails_get_template($template);
 	$html_email = '';
 	include( 'templates/layout.php' );
-	$message = array( 
+	$message = array(
 					 'text/plain' => $message,
 					 'text/html' => $html_email
 					);
-	
+
 	return wp_mail( $to, $subject, $message );
 }
 
@@ -182,7 +162,7 @@ function eemails_wp_mail( $to, $subject, $message, $headers = '', $attachments =
 */
 
 function eemails_get_image_url( $image_name ) {
-	return EEMAILS_URL . EEMAILS_FOLDER_NAME . 'images/' . $image_name;
+	return plugins_url( '/templates/images/' . $image_name, __FILE__ );
 }
 
 function eemails_get_logo_url() {
@@ -190,37 +170,23 @@ function eemails_get_logo_url() {
 	return apply_filters( 'eemails_html_logo', $email_logo );
 }
 
-function eemails_get_gravatar( $email, $size = 50 ) {
-	$gravatar = get_avatar( $email, $size );
-	return $gravatar;
-}
-
-
-function eemails_blogname( ) {
-	echo wp_specialchars_decode( get_option('blogname'), ENT_QUOTES );
-}
-
 function eemails_get_action_links( $action_links = array(), $label = 'Take action:' ) {
 	$links = array();
-	
+
 	foreach ($action_links as $link) {
 		$links[] = '<a href="' . $link['link'] . '" style="color:#' . $link['color'] . ';text-decoration:none;margin: 0 10px;font-weight:bold; font-size: 14px">' . $link['text'] . '</a>';
 	}
-	
+
 	if ( ! empty ( $links ) )
 		$links = $label . implode(' | ',$links);
-	
-	return $links;
-}
 
-function eemails_action_links( $action_links = array(), $label = '' ) {
-	echo eemails_get_action_links( $action_links, $label );
+	return $links;
 }
 
 function eemails_test() {
 	wp_notify_postauthor(2);
 	wp_notify_moderator(2);
 	wp_new_user_notification(1, 'mysecretpassword');
-	wp_password_change_notification(new WP_User(1));	
+	wp_password_change_notification(new WP_User(1));
 }
 ?>

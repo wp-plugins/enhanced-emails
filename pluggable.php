@@ -346,13 +346,13 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	// The blogname option is escaped with esc_html on the way into the database in sanitize_option
 	// we want to reverse this for the plain text arena of emails.
 	$blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
-	$eemails_args = array();
+	$eemail_args = array();
 	if ( empty( $comment_type ) ) $comment_type = 'comment';
 
-	$eemails_args['template_args'] = array(
-										   'comment' => $comment,
-										   'comment_type' => $comment_type
-										   );
+	$eemail_args['template_args'] = array(
+		'comment' => $comment,
+		 'comment_type' => $comment_type
+	);
 	
 	if ('comment' == $comment_type) {
 		$notify_message  = sprintf( __( 'New comment on your post "%s"' ), $post->post_title ) . "\r\n";
@@ -363,7 +363,7 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 		$notify_message .= sprintf( __('Whois  : http://whois.arin.net/rest/ip/%s'), $comment->comment_author_IP ) . "\r\n";
 		$notify_message .= __('Comment: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
 		$notify_message .= __('You can see all comments on this post here: ') . "\r\n";
-		$eemails_args['content_title'] = sprintf( __( '"%s" - new comment' ), $post->post_title );
+		$eemail_args['content_title'] = sprintf( __( '"%s" - new comment' ), $post->post_title );
 		/* translators: 1: blog name, 2: post title */
 		$subject = sprintf( __('[%1$s] Comment: "%2$s"'), $blogname, $post->post_title );
 	} elseif ('trackback' == $comment_type) {
@@ -373,7 +373,7 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 		$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
 		$notify_message .= __('Excerpt: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
 		$notify_message .= __('You can see all trackbacks on this post here: ') . "\r\n";
-		$eemails_args['content_title'] = sprintf( __( '"%s" - new traceback' ), $post->post_title );
+		$eemail_args['content_title'] = sprintf( __( '"%s" - new trackback' ), $post->post_title );
 		/* translators: 1: blog name, 2: post title */
 		$subject = sprintf( __('[%1$s] Trackback: "%2$s"'), $blogname, $post->post_title );
 	} elseif ('pingback' == $comment_type) {
@@ -383,24 +383,24 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 		$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
 		$notify_message .= __('Excerpt: ') . "\r\n" . sprintf('[...] %s [...]', $comment->comment_content ) . "\r\n\r\n";
 		$notify_message .= __('You can see all pingbacks on this post here: ') . "\r\n";
-		$eemails_args['content_title'] = sprintf( __( '"%s" - new pingback' ), $post->post_title );
+		$eemail_args['content_title'] = sprintf( __( '"%s" - new pingback' ), $post->post_title );
 		/* translators: 1: blog name, 2: post title */
 		$subject = sprintf( __('[%1$s] Pingback: "%2$s"'), $blogname, $post->post_title );
 	}
 	$notify_message .= get_permalink($comment->comment_post_ID) . "#comments\r\n\r\n";
 	$notify_message .= sprintf( __('Permalink: %s'), get_permalink( $comment->comment_post_ID ) . '#comment-' . $comment_id ) . "\r\n";
 	
-	$eemails_args['action_links'] = array();
+	$eemail_args['action_links'] = array();
 	if ( EMPTY_TRASH_DAYS ) {
 		$notify_message .= sprintf( __('Trash it: %s'), admin_url("comment.php?action=trash&c=$comment_id") ) . "\r\n";
-		$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=trash&c=$comment_id"),'color'=>'c23031','text'=>__('Trash it'));
+		$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=trash&c=$comment_id"),'color'=>'c23031','text'=>__('Trash it'));
 	}
 	else {
 		$notify_message .= sprintf( __('Delete it: %s'), admin_url("comment.php?action=delete&c=$comment_id") ) . "\r\n";
-		$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=delete&c=$comment_id"),'color'=>'c23031','text'=>__('Delete it'));
+		$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=delete&c=$comment_id"),'color'=>'c23031','text'=>__('Delete it'));
 	}
 	$notify_message .= sprintf( __('Spam it: %s'), admin_url("comment.php?action=spam&c=$comment_id") ) . "\r\n";
-	$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=spam&c=$comment_id"),'color'=>'d2b12e','text'=>__('Mark as spam'));
+	$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=spam&c=$comment_id"),'color'=>'d2b12e','text'=>__('Mark as spam'));
 
 	$wp_email = 'wordpress@' . preg_replace('#^www\.#', '', strtolower($_SERVER['SERVER_NAME']));
 
@@ -423,8 +423,10 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	$notify_message = apply_filters('comment_notification_text', $notify_message, $comment_id);
 	$subject = apply_filters('comment_notification_subject', $subject, $comment_id);
 	$message_headers = apply_filters('comment_notification_headers', $message_headers, $comment_id);
-	$eemails_args['template'] = 'email-comment-notify';
-	@eemails_wp_mail( $author->user_email, $subject, $notify_message, $message_headers, array(), $eemails_args );
+	$eemail_args['template-slug'] = 'email'; 
+	$eemail_args['template-event'] = 'comment'; 
+	$eemail_args['template-name'] = 'notify'; 
+	@eemails_wp_mail( $author->user_email, $subject, $notify_message, $message_headers, array(), $eemail_args );
 	return true;
 }
 endif;
@@ -460,15 +462,15 @@ function wp_notify_moderator($comment_id) {
 	// we want to reverse this for the plain text arena of emails.
 	$blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
 	
-	$eemails_args = array();
+	$eemail_args = array();
 
 	$comment_type = $comment->comment_type;
 	if ( empty( $comment_type ) ) $comment_type = 'comment';
 
-	$eemails_args['template_args'] = array(
-										   'comment' => $comment,
-										   'comment_type' => $comment_type
-										   );
+	$eemail_args['template_args'] = array(
+		'comment' => $comment,
+		'comment_type' => $comment_type
+	);
 	switch ($comment->comment_type)
 	{
 		case 'trackback':
@@ -477,7 +479,7 @@ function wp_notify_moderator($comment_id) {
 			$notify_message .= sprintf( __('Website : %1$s (IP: %2$s , %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
 			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
 			$notify_message .= __('Trackback excerpt: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
-			$eemails_args['content_title'] = sprintf( __( '"%s" - new traceback awaiting approval' ), $post->post_title );
+			$eemail_args['content_title'] = sprintf( __( '"%s" - new trackback awaiting approval' ), $post->post_title );
 			break;
 		case 'pingback':
 			$notify_message  = sprintf( __('A new pingback on the post "%s" is waiting for your approval'), $post->post_title ) . "\r\n";
@@ -485,7 +487,7 @@ function wp_notify_moderator($comment_id) {
 			$notify_message .= sprintf( __('Website : %1$s (IP: %2$s , %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
 			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
 			$notify_message .= __('Pingback excerpt: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
-			$eemails_args['content_title'] = sprintf( __( '"%s" - new pingback awaiting approval' ), $post->post_title );
+			$eemail_args['content_title'] = sprintf( __( '"%s" - new pingback awaiting approval' ), $post->post_title );
 			break;
 		default: //Comments
 			$notify_message  = sprintf( __('A new comment on the post "%s" is waiting for your approval'), $post->post_title ) . "\r\n";
@@ -495,26 +497,26 @@ function wp_notify_moderator($comment_id) {
 			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
 			$notify_message .= sprintf( __('Whois  : http://whois.arin.net/rest/ip/%s'), $comment->comment_author_IP ) . "\r\n";
 			$notify_message .= __('Comment: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
-			$eemails_args['content_title'] = sprintf( __( '"%s" - new comment awaiting approval' ), $post->post_title );
+			$eemail_args['content_title'] = sprintf( __( '"%s" - new comment awaiting approval' ), $post->post_title );
 			break;
 	}
 
-	$eemails_args['action_links'] = array(array('link'=>admin_url("comment.php?action=approve&c=$comment_id"),'color'=>'3ca757','text'=>__('Approve it')));
+	$eemail_args['action_links'] = array(array('link'=>admin_url("comment.php?action=approve&c=$comment_id"),'color'=>'3ca757','text'=>__('Approve it')));
 																																		   
 	$notify_message .= sprintf( __('Approve it: %s'),  admin_url("comment.php?action=approve&c=$comment_id") ) . "\r\n";
 	if ( EMPTY_TRASH_DAYS ) {
 		$notify_message .= sprintf( __('Trash it: %s'), admin_url("comment.php?action=trash&c=$comment_id") ) . "\r\n";
-		$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=trash&c=$comment_id"),'color'=>'c23031','text'=>__('Trash it'));
+		$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=trash&c=$comment_id"),'color'=>'c23031','text'=>__('Trash it'));
 	}
 	else {
 		$notify_message .= sprintf( __('Delete it: %s'), admin_url("comment.php?action=delete&c=$comment_id") ) . "\r\n";
-		$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=delete&c=$comment_id"),'color'=>'c23031','text'=>__('Delete it'));
+		$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=delete&c=$comment_id"),'color'=>'c23031','text'=>__('Delete it'));
 	}
 		
 	$notify_message .= sprintf( __('Spam it: %s'), admin_url("comment.php?action=spam&c=$comment_id") ) . "\r\n";
-	$eemails_args['action_links'][] = array('link'=>admin_url("comment.php?action=spam&c=$comment_id"),'color'=>'d2b12e','text'=>__('Mark as spam'));
+	$eemail_args['action_links'][] = array('link'=>admin_url("comment.php?action=spam&c=$comment_id"),'color'=>'d2b12e','text'=>__('Mark as spam'));
 	
-	$eemails_args['template_args']['moderation_message'] = sprintf( _n('Currently %s comment is waiting for approval. ',
+	$eemail_args['template_args']['moderation_message'] = sprintf( _n('Currently %s comment is waiting for approval. ',
  		'Currently %s comments are waiting for approval.', $comments_waiting), number_format_i18n($comments_waiting) ) . ' <a href="' . admin_url("edit-comments.php?comment_status=moderated") . '" style="color:#21759b;text-decoration:none;">Please visit the moderation panel.</a>';
 	$notify_message .= sprintf( _n('Currently %s comment is waiting for approval. Please visit the moderation panel:',
  		'Currently %s comments are waiting for approval. Please visit the moderation panel:', $comments_waiting), number_format_i18n($comments_waiting) ) . "\r\n";
@@ -527,9 +529,11 @@ function wp_notify_moderator($comment_id) {
 	$subject = apply_filters('comment_moderation_subject', $subject, $comment_id);
 	$message_headers = apply_filters('comment_moderation_headers', $message_headers);
 	
-	$eemails_args['template'] = 'email-comment-notify';
+	$eemail_args['template-slug'] = 'email';
+	$eemail_args['template-event'] = 'comment';
+	$eemail_args['template-name'] = 'notify';
 	foreach ( $email_to as $email )
-		@eemails_wp_mail($email, $subject, $notify_message, $message_headers, array(), $eemails_args);
+		@eemails_wp_mail($email, $subject, $notify_message, $message_headers, array(), $eemail_args);
 
 	return true;
 }
@@ -554,7 +558,7 @@ function wp_password_change_notification(&$user) {
 		$blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
 		$eemail_args['template'] = 'email-passwordchange-admin';
 		$eemail_args['template_args'] = array('user' => $user);
-		$eemails_args['action_links'] = array(
+		$eemail_args['action_links'] = array(
 											  array('link'=>admin_url("user-edit.php?user_id=".$user->ID),'color'=>'d2b12e','text'=>__('Edit user')),
 											  array('link'=>admin_url("users.php"),'color'=>'3ca757','text'=>__('See all users'))
 											  );
@@ -586,7 +590,9 @@ function wp_new_user_notification($user_id, $plaintext_pass = '') {
 	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
 	$message .= sprintf(__('E-mail: %s'), $user_email) . "\r\n";
 
-	$eemail_args['template'] = 'email-newuser-admin';
+	$eemail_args['template-slug'] = 'email';
+	$eemail_args['template-event'] = 'newuser';
+	$eemail_args['template-name'] = 'admin';
 	$eemail_args['template_args'] = array('user' => $user);
 	$eemail_args['action_links'] = array(
 										  array('link'=>admin_url("user-edit.php?user_id=".$user->ID),'color'=>'d2b12e','text'=>__('Edit user')),
@@ -599,7 +605,9 @@ function wp_new_user_notification($user_id, $plaintext_pass = '') {
 
 	$eemail_args['template_args']["user_password"] = $plaintext_pass;
 	$eemail_args['action_links'] = array();
-	$eemail_args['template'] = 'email-newuser-user';
+	$eemail_args['template-slug'] = 'email';
+	$eemail_args['template-event'] = 'newuser';
+	$eemail_args['template-name'] = 'user'; 
 	$message  = sprintf(__('Username: %s'), $user_login) . "\r\n";
 	$message .= sprintf(__('Password: %s'), $plaintext_pass) . "\r\n";
 	$message .= wp_login_url() . "\r\n";
