@@ -79,7 +79,6 @@ function eemails_get_template( $slug, $event = null , $name = null ) {
                 '', // Blank is the template directories, which we want to check first
                 dirname( __FILE__ ) . '/templates/', // The templates included with the plugin
         ) );
-
         $templates = array();
         foreach ( $directories as $dir ) {
                 $dir_slug = empty( $dir )? $slug : path_join( $dir, $slug );
@@ -146,7 +145,7 @@ function eemails_wp_mail( $to, $subject, $message, $headers = '', $attachments =
 	extract( $args, EXTR_SKIP );
 	extract( $template_args, EXTR_SKIP );
 
-	$template = eemails_get_template($template);
+	$template = eemails_get_template($args['template-slug'], $args['template-event'], $args['template-name']);
 	$html_email = '';
 	include( 'templates/layout.php' );
 	$message = array(
